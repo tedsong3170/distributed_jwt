@@ -1,7 +1,7 @@
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
+import static org.assertj.core.api.Assertions.*;
 
 public class DistributedJwtServiceTest
 {
@@ -16,8 +16,12 @@ public class DistributedJwtServiceTest
                 key, expiredTime, SignatureAlgorithm.HS256
         );
 
-        ArrayList<String> result = instance.createToken("33");
+        DistributedJwtService.Token result = instance.createToken("33");
 
-
+        assertThat(result.getCookieToken().getName() ).isEqualTo("jwt");
+        assertThat(result.getCookieToken().getValue() ).isNotEmpty();
+        assertThat(result.getCookieToken().getPath()).isEqualTo("/");
+        assertThat(result.getCookieToken().isHttpOnly()).isTrue();
+        assertThat(result.getBodyToken() ).isNotEmpty();
     }
 }

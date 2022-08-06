@@ -5,8 +5,8 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.io.Encoders;
 import io.jsonwebtoken.security.Keys;
 
+import javax.servlet.http.Cookie;
 import java.security.Key;
-import java.util.ArrayList;
 import java.util.Date;
 
 public class DistributedJwtService
@@ -15,6 +15,40 @@ public class DistributedJwtService
     private Key key;
     private long expiredTime;
     private SignatureAlgorithm alg;
+
+    class Token
+    {
+        String cookieToken;
+        String bodyToken;
+
+        public Token(String cookieToken, String bodyToken) {
+            this.cookieToken = cookieToken;
+            this.bodyToken = bodyToken;
+        }
+
+        /**
+         * This Function returns Cookie object.
+         * Name is "jwt", HttpOnly, Path(/)
+         *
+         * Example is below
+         * *****************
+         * Just You need to add cookie
+         * response.addCookie(token.getCookieToken());
+         * ******************
+         * @return javax cookie object
+         */
+        public Cookie getCookieToken() {
+            Cookie cookie = new Cookie("jwt", cookieToken);
+            cookie.setPath("/");
+            cookie.setHttpOnly(true);
+
+            return cookie;
+        }
+
+        public String getBodyToken() {
+            return bodyToken;
+        }
+    }
 
     public DistributedJwtService(String secretKey, long expiredTime, SignatureAlgorithm alg)
     {
@@ -29,14 +63,29 @@ public class DistributedJwtService
         this.alg = alg;
     }
 
-    public ArrayList<String> createToken(String userPk)
+    public Token createToken(String userPk)
     {
+        // issue token
         String token = createJwtToken(userPk);
 
-        ArrayList<String> result = new ArrayList<>();
-        result.add(token);
+        // divide token
+        Token dividedJWTToken = divideJWTIntoField(token);
 
-        return result;
+        return dividedJWTToken;
+    }
+
+    private Token divideJWTIntoField(String token)
+    {
+        String[] temp = token.split("\\.");
+
+        if (temp.length != 3)
+        {
+            throw new RuntimeException("Problem with dividing token");
+        }
+
+        Token divideToken = new Token(temp[0] + "." + temp[1],
+                                        temp[2]);
+        return divideToken;
     }
 
     private String createJwtToken(String userPk)
